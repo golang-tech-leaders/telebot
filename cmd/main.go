@@ -63,7 +63,7 @@ func getUpdates(url string, offset int) ([]Update, error) {
 
 //ответ на обновления
 func respond(url string, update Update) error {
-	//TODO поправить как Илья предложил
+
 	botMessage := BotMessage{
 		ChatId: update.Message.Chat.ChatId,
 		Text:   update.Message.Text,
