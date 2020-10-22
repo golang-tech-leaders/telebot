@@ -3,29 +3,35 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"sort"
 	"strconv"
 )
 
 //точка входа программы
 func main() {
-	botToken := "1002130423:AAG1fk3_C4PSn3172SATn29jgtp5T7R5o60"
+	token := os.Getenv("TOKEN")
+	if token == "" {
+		token = telToken
+	}
 	//https://api.telegram.org/bot<token>/METHOD_NAME
-	botApi := "https://api.telegram.org/bot"
-	botUrl := botApi + botToken
+	url := telApi + token
 	offset := 0
 
 	for {
-		updates, err := getUpdates(botUrl, offset)
+		updates, err := getUpdates(url, offset)
 		if err != nil {
 			log.Println("Something go wrong: ", err.Error())
 		}
 
+		sort.Slice(updates, func(i, j int) bool { return updates[i].UpdateId < updates[j].UpdateId })
 		for _, update := range updates {
-			err = respond(botUrl, update)
+			err = respond(url, update)
 			offset = update.UpdateId + 1
 		}
 
@@ -34,8 +40,8 @@ func main() {
 }
 
 //запрос обновлений
-func getUpdates(botUrl string, offset int) ([]Update, error) {
-	resp, err := http.Get(botUrl + "/getUpdates" + "?offset=" + strconv.Itoa(offset))
+func getUpdates(url string, offset int) ([]Update, error) {
+	resp, err := http.Get(url + "/getUpdates" + "?offset=" + strconv.Itoa(offset))
 	if err != nil {
 		return nil, err
 	}
@@ -56,19 +62,24 @@ func getUpdates(botUrl string, offset int) ([]Update, error) {
 }
 
 //ответ на обновления
-func respond(botUrl string, update Update) error {
-	var botMessage BotMessage
-	botMessage.ChatId = update.Message.Chat.ChatId
-	botMessage.Text = update.Message.Text
+func respond(url string, update Update) error {
+	//TODO поправить как Илья предложил
+	botMessage := BotMessage{
+		ChatId: update.Message.Chat.ChatId,
+		Text:   update.Message.Text,
+	}
 
 	buf, err := json.Marshal(botMessage)
 	if err != nil {
 		return err
 	}
 
-	_, err = http.Post(botUrl+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+	resp, err := http.Post(url+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		return errors.New(resp.Status)
 	}
 
 	return nil
