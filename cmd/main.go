@@ -15,6 +15,7 @@ import (
 
 //точка входа программы
 func main() {
+
 	token := os.Getenv("TOKEN")
 	if token == "" {
 		token = telToken
@@ -31,7 +32,17 @@ func main() {
 
 		sort.Slice(updates, func(i, j int) bool { return updates[i].UpdateId < updates[j].UpdateId })
 		for _, update := range updates {
-			err = respond(url, update)
+			if update.Message.Text == "button" {
+				err := sendButton(url, update)
+				if err != nil {
+					log.Println("Something go wrong: ", err.Error())
+				}
+			} else {
+				err = respond(url, update)
+				if err != nil {
+					log.Println("Something go wrong: ", err.Error())
+				}
+			}
 			offset = update.UpdateId + 1
 		}
 
@@ -75,6 +86,38 @@ func respond(url string, update Update) error {
 	}
 
 	resp, err := http.Post(url+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		return errors.New(resp.Status)
+	}
+
+	return nil
+}
+
+func sendButton(url string, update Update) error {
+
+	button := KeyboardButton{"не нажимайте эту кнопку"}
+	keyboard := make([][]KeyboardButton, 1)
+	keyboard[0] = make([]KeyboardButton, 1)
+	keyboard[0][0] = button
+	myKeyboard := ReplyKeyboardMarkup{
+		Keyboard: keyboard,
+	}
+	greetingMessage := BotMessage{
+		ChatId:      update.Message.Chat.ChatId,
+		Text:        update.Message.Text,
+		ReplyMarkup: myKeyboard,
+	}
+
+	bufGreeting, err := json.Marshal(greetingMessage)
+
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(url+"/sendMessage", "application/json", bytes.NewBuffer(bufGreeting))
 	if err != nil {
 		return err
 	}

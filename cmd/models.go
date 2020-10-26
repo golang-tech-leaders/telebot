@@ -19,6 +19,15 @@ type RestResponse struct {
 }
 
 type BotMessage struct {
-	ChatId int    `json:"chat_id"`
-	Text   string `json:"text"`
+	ChatId      int                 `json:"chat_id"`
+	Text        string              `json:"text"`
+	ReplyMarkup ReplyKeyboardMarkup `json:"reply_markup"`
+}
+
+type ReplyKeyboardMarkup struct {
+	Keyboard [][]KeyboardButton `json:"keyboard"`
+}
+
+type KeyboardButton struct {
+	TextButton string `json:"text"`
 }
