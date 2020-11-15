@@ -7,7 +7,6 @@ import (
 	"telebot/internal/utils"
 )
 
-//точка входа программы
 func main() {
 	token := os.Getenv("TOKEN")
 	if token == "" {

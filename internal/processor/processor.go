@@ -88,7 +88,7 @@ func processFreeText(token string, chatId int, text string, userSessions map[int
 		return
 	}
 
-	if wasteType != (models.WasteType{}) {
+	if wasteType != (models.WasteType{}) && wasteType != nil {
 		userSessions[chatId] = wasteType
 		err = services.SendLocatonRequest(token, chatId, "Для получения пунктов сдачи необходимо определить геолокацию. Нажмите на кнопку:")
 		if err != nil {

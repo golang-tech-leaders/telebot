@@ -4,35 +4,29 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strconv"
+	"telebot/internal/http_error"
 	"telebot/internal/models"
 	"telebot/internal/utils"
 )
 
-// Запрос обновлений
+// GetUpdates Запрос обновлений
 func GetUpdates(token string, offset int) ([]models.Update, error) {
-	requestUrl := utils.TelegramApiUrl + token + "/getUpdates" + "?offset=" + strconv.Itoa(offset)
+	requestUrl := fmt.Sprintf("%s%s/getUpdates?offset=%d", utils.TelegramApiUrl, token, offset)
 	resp, err := http.Get(requestUrl)
 	if err != nil {
-		return nil, utils.CommonError(err.Error() + " " + requestUrl)
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
 	}
 	defer resp.Body.Close()
 
-	bodyJson, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, utils.CommonError(err.Error() + " " + requestUrl)
-	}
-
-	if utils.IsFailStatus(resp.StatusCode) {
-		return nil, utils.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+string(bodyJson))
+	if http_error.IsFailStatus(resp.StatusCode) {
+		return nil, http_error.HttpError(resp.StatusCode, fmt.Sprintf("%s %s %v", resp.Status, requestUrl, resp))
 	}
 
 	var getUpdateResponse models.GetUpdateResponse
-	err = json.Unmarshal(bodyJson, &getUpdateResponse)
+	err = json.NewDecoder(resp.Body).Decode(&getUpdateResponse)
 	if err != nil {
-		return nil, utils.CommonError(err.Error() + " " + requestUrl)
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
 	}
 
 	return getUpdateResponse.Result, nil
@@ -49,22 +43,22 @@ func SendTextMessage(token string, chatId int, text string) error {
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		return utils.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
+		return http_error.CommonError(fmt.Sprintf("%v: %s %v", err, requestUrl, message))
 	}
 
 	resp, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(messageJson))
 	if err != nil {
-		return utils.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
+		return http_error.CommonError(fmt.Sprintf("%v: %s %v", err, requestUrl, message))
 	}
-	if utils.IsFailStatus(resp.StatusCode) {
-		return utils.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+fmt.Sprintf("%v", message)+" "+string(messageJson))
+	if http_error.IsFailStatus(resp.StatusCode) {
+		return http_error.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+fmt.Sprintf("%v", message)+" "+string(messageJson))
 	}
 
 	return nil
 }
 
 func SendTextButtons(token string, chatId int, text string, textList []string) error {
-	requestUrl := utils.TelegramApiUrl + token + "/sendMessage"
+	requestUrl := http_error.TelegramApiUrl + token + "/sendMessage"
 
 	buttons := make([][]models.KeyboardButton, len(textList))
 	keyboard := models.ReplyKeyboardMarkup{
@@ -87,15 +81,15 @@ func SendTextButtons(token string, chatId int, text string, textList []string) e
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		return utils.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
+		return http_error.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
 	}
 
 	resp, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(messageJson))
 	if err != nil {
-		return utils.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
+		return http_error.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
 	}
-	if utils.IsFailStatus(resp.StatusCode) {
-		return utils.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+fmt.Sprintf("%v", message)+" "+string(messageJson))
+	if http_error.IsFailStatus(resp.StatusCode) {
+		return http_error.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+fmt.Sprintf("%v", message)+" "+string(messageJson))
 	}
 
 	return nil
@@ -104,34 +98,32 @@ func SendTextButtons(token string, chatId int, text string, textList []string) e
 func SendLocatonRequest(token string, chatId int, text string) error {
 	requestUrl := utils.TelegramApiUrl + token + "/sendMessage"
 
-	buttons := make([][]models.KeyboardButton, 1)
-	keyboard := models.ReplyKeyboardMarkup{
-		Keyboard: buttons,
+	buttons := [][]models.KeyboardButton{
+		[]models.KeyboardButton{
+			{
+				TextButton:      "Отправить геолокацию",
+				RequestLocation: true,
+			},
+		},
 	}
-	button := models.KeyboardButton{
-		TextButton:      "Отправить геолокацию",
-		RequestLocation: true,
-	}
-	buttons[0] = make([]models.KeyboardButton, 1)
-	buttons[0][0] = button
 
 	message := models.BotMessage{
 		ChatId:      chatId,
 		Text:        text,
-		ReplyMarkup: keyboard,
+		ReplyMarkup: buttons,
 	}
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		return utils.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
+		return http_error.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
 	}
 
 	resp, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(messageJson))
 	if err != nil {
-		return utils.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
+		return http_error.CommonError(err.Error() + requestUrl + " " + fmt.Sprintf("%v", message))
 	}
-	if utils.IsFailStatus(resp.StatusCode) {
-		return utils.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+fmt.Sprintf("%v", message)+" "+string(messageJson))
+	if http_error.IsFailStatus(resp.StatusCode) {
+		return http_error.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+fmt.Sprintf("%v", message)+" "+string(messageJson))
 	}
 
 	return nil
