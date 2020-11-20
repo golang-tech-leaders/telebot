@@ -9,8 +9,8 @@ import (
 )
 
 // GetWasteTypeByText Получение типа отхода из текста
-func GetWasteTypeByText(text string) (*models.WasteType, error) {
-	requestUrl := utils.RecyclingApiUrl + "waste/type/search/" + text
+func GetWasteTypeByText(url string, text string) (*models.WasteType, error) {
+	requestUrl := url + "waste/type/search/" + text
 	resp, err := http.Get(requestUrl)
 	if err != nil {
 		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
@@ -38,27 +38,27 @@ func GetWasteTypeByText(text string) (*models.WasteType, error) {
 }
 
 // GetWasteTypes Получение списка отходов
-func GetWasteTypes() ([]models.WasteType, error) {
-	requestUrl := utils.RecyclingApiUrl + "waste/type/list"
-	resp, err := http.Get(utils.RecyclingApiUrl + "waste/type/list")
+func GetWasteTypes(url string) ([]models.WasteType, error) {
+	requestUrl := url + "waste/type/list"
+	resp, err := http.Get(requestUrl)
 	if err != nil {
-		return nil, utils.CommonError(err.Error() + " " + requestUrl)
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
 	}
 	defer resp.Body.Close()
 
 	bodyJson, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, utils.CommonError(err.Error() + " " + requestUrl)
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
 	}
 
-	if utils.IsFailStatus(resp.StatusCode) {
-		return nil, utils.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+string(bodyJson))
+	if http_error.IsFailStatus(resp.StatusCode) {
+		return nil, http_error.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+string(bodyJson))
 	}
 
 	var wasteTypes []models.WasteType
 	err = json.Unmarshal(bodyJson, &wasteTypes)
 	if err != nil {
-		return nil, utils.CommonError(err.Error() + " " + requestUrl + " " + string(bodyJson))
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl + " " + string(bodyJson))
 	}
 
 	return wasteTypes, nil

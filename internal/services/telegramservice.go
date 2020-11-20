@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"telebot/internal/http_error"
 	"telebot/internal/models"
-	"telebot/internal/utils"
 )
 
 // GetUpdates Запрос обновлений
-func GetUpdates(token string, offset int) ([]models.Update, error) {
-	requestUrl := fmt.Sprintf("%s%s/getUpdates?offset=%d", utils.TelegramApiUrl, token, offset)
+func GetUpdates(token string, url string, offset int) ([]models.Update, error) {
+	requestUrl := fmt.Sprintf("%s%s/getUpdates?offset=%d", url, token, offset)
 	resp, err := http.Get(requestUrl)
 	if err != nil {
 		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
@@ -32,8 +31,8 @@ func GetUpdates(token string, offset int) ([]models.Update, error) {
 	return getUpdateResponse.Result, nil
 }
 
-func SendTextMessage(token string, chatId int, text string) error {
-	requestUrl := utils.TelegramApiUrl + token + "/sendMessage"
+func SendTextMessage(token string, url string, chatId int, text string) error {
+	requestUrl := url + token + "/sendMessage"
 
 	message := models.BotMessage{
 		ChatId:      chatId,
@@ -57,8 +56,8 @@ func SendTextMessage(token string, chatId int, text string) error {
 	return nil
 }
 
-func SendTextButtons(token string, chatId int, text string, textList []string) error {
-	requestUrl := http_error.TelegramApiUrl + token + "/sendMessage"
+func SendTextButtons(token string, url string, chatId int, text string, textList []string) error {
+	requestUrl := url + token + "/sendMessage"
 
 	buttons := make([][]models.KeyboardButton, len(textList))
 	keyboard := models.ReplyKeyboardMarkup{
@@ -95,14 +94,16 @@ func SendTextButtons(token string, chatId int, text string, textList []string) e
 	return nil
 }
 
-func SendLocatonRequest(token string, chatId int, text string) error {
-	requestUrl := utils.TelegramApiUrl + token + "/sendMessage"
+func SendLocatonRequest(token string, url string, chatId int, text string) error {
+	requestUrl := url + token + "/sendMessage"
 
-	buttons := [][]models.KeyboardButton{
-		[]models.KeyboardButton{
-			{
-				TextButton:      "Отправить геолокацию",
-				RequestLocation: true,
+	keyboard := models.ReplyKeyboardMarkup{
+		Keyboard: [][]models.KeyboardButton{
+			[]models.KeyboardButton{
+				{
+					TextButton:      "Отправить геолокацию",
+					RequestLocation: true,
+				},
 			},
 		},
 	}
@@ -110,7 +111,7 @@ func SendLocatonRequest(token string, chatId int, text string) error {
 	message := models.BotMessage{
 		ChatId:      chatId,
 		Text:        text,
-		ReplyMarkup: buttons,
+		ReplyMarkup: keyboard,
 	}
 
 	messageJson, err := json.Marshal(message)
