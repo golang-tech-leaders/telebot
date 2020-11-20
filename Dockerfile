@@ -14,7 +14,7 @@ RUN set -x && apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY config.yml ./
+COPY cmd/botapp/config.yml ./config.yml
 COPY --from=builder /bin/server ./
 
 CMD ["./server", "-config", "config.yml"]
