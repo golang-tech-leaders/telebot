@@ -8,6 +8,67 @@ import (
 	"telebot/internal/services"
 )
 
+type Processor struct {
+	closeChan chan int
+}
+
+func NewProcessor() *Processor{
+	return &Processor{
+		closeChan: make(chan int),
+	}	
+}
+
+type message struct {
+	
+}
+
+func (p *Processor) Start(config *models.Config, userSessions map[int]models.WasteType) {
+	offset := 0
+	updates := make(chan []models.Update)
+	
+	for {
+		go func() {
+			u, err := services.GetUpdates(config.TelegramToken, config.TelegramApiUrl, offset)
+			if err != nil {
+				return
+			}
+			updates <- u
+			
+		}()
+
+		select {
+		case <-p.closeChan:
+			return
+		case u := <-updates:
+			for upd := range u {
+				messageText := strings.ToLower(update.Message.Text)
+				chatId := update.Message.Chat.ChatId
+				location := update.Message.Location
+
+				switch messageText {
+				case "/start":
+					processStart(config, chatId)
+				case "/getwastetypes":
+					processWasteTypesRequest(config, chatId)	
+				default:
+					if messageText == "" && location.Lon != 0 && location.Lat != 0 {
+						if processLocation(config, chatId, location.Lat, location.Lon, wasteType.Id) {
+							delete(userSessions, update.Message.Chat.ChatId)
+						}
+					} else {
+						processFreeText(config, chatId, messageText, userSessions)	
+					}
+				}
+				offset = update.UpdateId + 1
+			}
+		}
+	}
+}
+
+func (p *Processor) Stop() {
+	close(p.closeChan)
+}
+
 func ProcessUpdates(config *models.Config, offset int, userSessions map[int]models.WasteType) int {
 	updates, err := services.GetUpdates(config.TelegramToken, config.TelegramApiUrl, offset)
 	if err != nil {
