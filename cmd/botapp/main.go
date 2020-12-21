@@ -15,14 +15,10 @@ func main() {
 	config := prepareConfig()
 
 	storage := database.NewTelebotLanguageStorage(config)
+	storage.Migrate()
 
 	processor := processor.NewProcessor()
 	processor.Start(config, storage)
-
-	// offset := 0
-	// for {
-	// 	offset = processor.ProcessUpdates(config, offset, userSessions)
-	// }
 }
 
 func prepareConfig() *models.Config {

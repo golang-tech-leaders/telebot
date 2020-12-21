@@ -16,5 +16,10 @@ RUN set -x && apt-get update && \
 WORKDIR /app
 COPY cmd/botapp/config.yml ./config.yml
 COPY --from=builder /bin/server ./
+COPY db/migrations /app/migrations
+
+ENV DATABASE_URL=""
+
+EXPOSE $PORT
 
 CMD ["./server", "-config", "config.yml"]

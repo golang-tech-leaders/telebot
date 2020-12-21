@@ -3,51 +3,52 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"telebot/internal/models"
 
-	_ "github.com/golang-migrate/migrate/v4/source/file" // required for go-migrate via files
-	_ "github.com/lib/pq"                                // required for PostgreSQL connection
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
 )
 
-// PostgresWasteStorage incapsulates PostgreSQL storage
 type TelebotLanguageStorage struct {
 	db *sql.DB
 }
 
-// Migrate ups version of DB model
-// func (t *TelebotLanguageStorage) Migrate() {
-// 	driver, err := postgres.WithInstance(p.db, &postgres.Config{})
-// 	if err != nil {
-// 		log.Fatal("[MIGRATE] Unable to get driver due to: " + err.Error())
-// 	}
-// 	m, err := migrate.NewWithDatabaseInstance(
-// 		"file:///app/migrations",
-// 		"postgres", driver)
-// 	if err != nil {
-// 		log.Fatal("[MIGRATE] Unable to get migrate instance due to: " + err.Error())
-// 	}
-// 	err = m.Up()
-// 	switch err {
-// 	case migrate.ErrNoChange:
-// 		return
-// 	default:
-// 		log.Fatal("[MIGRATE] Unable to apply DB migrations due to: " + err.Error())
-// 	}
-// }
+func (telebotLanguageStorage *TelebotLanguageStorage) Migrate() {
+	driver, err := postgres.WithInstance(telebotLanguageStorage.db, &postgres.Config{})
+	if err != nil {
+		log.Fatal("[MIGRATE] Unable to get driver due to: " + err.Error())
+	}
+	migrateInstance, err := migrate.NewWithDatabaseInstance(
+		"file:///app/migrations",
+		"postgres", driver)
+	if err != nil {
+		log.Fatal("[MIGRATE] Unable to get migrate instance due to: " + err.Error())
+	}
+	err = migrateInstance.Up()
+	switch err {
+	case migrate.ErrNoChange:
+		return
+	default:
+		log.Fatal("[MIGRATE] Unable to apply DB migrations due to: " + err.Error())
+	}
+}
 
 func NewTelebotLanguageStorage(config *models.Config) *TelebotLanguageStorage {
 	dbURL := config.DbURL
 	if dbURL == "" {
-		// dbURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
 		dbURL = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", config.DbHost, config.DbPort, config.DbUser, config.DbPassword, config.DbName)
 	}
-	db, err := sql.Open("postgres", dbURL)
 
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		fmt.Printf(err.Error())
+		log.Fatal(err.Error())
 	}
+
 	if err = db.Ping(); err != nil {
-		fmt.Printf(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	storage := TelebotLanguageStorage{db: db}
@@ -58,11 +59,11 @@ func (t *TelebotLanguageStorage) GetLangMessage(langCode int) (*map[int]string, 
 	var queryLang string
 	switch langCode {
 	case RU:
-		queryLang = "SELECT \"ID\", \"RU\" FROM telebot_language"
+		queryLang = "SELECT ID, RU FROM messages"
 	case EN:
-		queryLang = "SELECT \"ID\", \"ENG\" FROM telebot_language"
+		queryLang = "SELECT ID, ENG FROM messages"
 	default:
-		queryLang = "SELECT \"ID\", \"RU\" FROM telebot_language"
+		queryLang = "SELECT ID, RU FROM messages"
 	}
 
 	rows, err := t.db.Query(queryLang)

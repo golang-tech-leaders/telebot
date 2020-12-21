@@ -89,38 +89,6 @@ func (p *Processor) Stop() {
 	close(p.closeChan)
 }
 
-// func ProcessUpdates(config *models.Config, offset int, userSessions map[int]models.WasteType) int {
-// 	updates, err := services.GetUpdates(config.TelegramToken, config.TelegramApiUrl, offset)
-// 	if err != nil {
-// 		return offset
-// 	}
-
-// 	sort.Slice(updates, func(i, j int) bool { return updates[i].UpdateId < updates[j].UpdateId })
-
-// 	for _, update := range updates {
-// 		messageText := strings.ToLower(update.Message.Text)
-// 		chatId := update.Message.Chat.ChatId
-// 		location := update.Message.Location
-
-// 		if messageText == "/start" {
-// 			processStart(config, chatId)
-// 		} else if messageText == "" && location.Lon != 0 && location.Lat != 0 {
-// 			if wasteType, ok := userSessions[chatId]; ok {
-// 				if processLocation(config, chatId, location.Lat, location.Lon, wasteType.Id) {
-// 					delete(userSessions, update.Message.Chat.ChatId)
-// 				}
-// 			}
-// 		} else if messageText == "/getwastetypes" {
-// 			processWasteTypesRequest(config, chatId)
-// 		} else {
-// 			processFreeText(config, chatId, messageText, userSessions)
-// 		}
-// 		offset = update.UpdateId + 1
-// 	}
-
-// 	return offset
-// }
-
 func processStart(config *models.Config, chatId int, helloMsg string) {
 	err := services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, helloMsg)
 	if err != nil {
