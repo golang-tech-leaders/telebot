@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
+	"net/http"
 	"telebot/internal/database"
 	"telebot/internal/models"
 	"telebot/internal/processor"
@@ -16,7 +16,7 @@ func main() {
 
 	storage := database.NewTelebotLanguageStorage(config)
 	storage.Migrate()
-
+	go http.ListenAndServe("0.0.0.0:"+config.Port, nil)
 	processor := processor.NewProcessor()
 	processor.Start(config, storage)
 }
@@ -29,10 +29,10 @@ func prepareConfig() *models.Config {
 		fmt.Printf("Unable to get app configuration due to: %s\n", err.Error())
 	}
 
-	if err := cleanenv.ReadEnv(&cfg); err != nil {
-		fmt.Printf("Unable to retrieve app configuration due to: %s\n", err.Error())
-		os.Exit(1)
-	}
+	// if err := cleanenv.ReadEnv(&cfg); err != nil {
+	// 	fmt.Printf("Unable to retrieve app configuration due to: %s\n", err.Error())
+	// 	os.Exit(1)
+	// }
 	return &cfg
 }
 
