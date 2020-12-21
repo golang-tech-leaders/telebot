@@ -94,14 +94,14 @@ func SendTextButtons(token string, url string, chatId int, text string, textList
 	return nil
 }
 
-func SendLocatonRequest(token string, url string, chatId int, text string) error {
+func SendLocatonRequest(token string, url string, chatId int, text string, btnMessage string) error {
 	requestUrl := url + token + "/sendMessage"
 
 	keyboard := models.ReplyKeyboardMarkup{
 		Keyboard: [][]models.KeyboardButton{
-			[]models.KeyboardButton{
+			{
 				{
-					TextButton:      "Отправить геолокацию",
+					TextButton:      btnMessage,
 					RequestLocation: true,
 				},
 			},

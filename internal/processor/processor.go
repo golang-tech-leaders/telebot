@@ -1,9 +1,10 @@
 package processor
 
 import (
+	"fmt"
 	"log"
-	"sort"
 	"strings"
+	"telebot/internal/database"
 	"telebot/internal/models"
 	"telebot/internal/services"
 )
@@ -12,51 +13,70 @@ type Processor struct {
 	closeChan chan int
 }
 
-func NewProcessor() *Processor{
+func NewProcessor() *Processor {
 	return &Processor{
 		closeChan: make(chan int),
-	}	
+	}
 }
 
-type message struct {
-	
-}
-
-func (p *Processor) Start(config *models.Config, userSessions map[int]models.WasteType) {
+func (p *Processor) Start(config *models.Config, storage *database.TelebotLanguageStorage) {
 	offset := 0
-	updates := make(chan []models.Update)
-	
+	updatesChan := make(chan []models.Update)
+	userSessionsWaste := make(map[int]models.WasteType)
+	userSessionsLang := make(map[int]map[int]string)
+
 	for {
 		go func() {
-			u, err := services.GetUpdates(config.TelegramToken, config.TelegramApiUrl, offset)
+			updatesList, err := services.GetUpdates(config.TelegramToken, config.TelegramApiUrl, offset)
 			if err != nil {
 				return
 			}
-			updates <- u
-			
+			updatesChan <- updatesList
 		}()
 
 		select {
 		case <-p.closeChan:
 			return
-		case u := <-updates:
-			for upd := range u {
+		case updatesList := <-updatesChan:
+			for _, update := range updatesList {
 				messageText := strings.ToLower(update.Message.Text)
 				chatId := update.Message.Chat.ChatId
 				location := update.Message.Location
 
+				if userSessionsLang[chatId] == nil {
+					messageMap, err := storage.GetLangMessage(database.RU)
+					if err != nil {
+						fmt.Println(err)
+					}
+					userSessionsLang[chatId] = *messageMap
+				}
+
 				switch messageText {
 				case "/start":
-					processStart(config, chatId)
+					processStart(config, chatId, userSessionsLang[chatId][1])
 				case "/getwastetypes":
-					processWasteTypesRequest(config, chatId)	
+					processWasteTypesRequest(config, chatId, userSessionsLang[chatId][3])
+				case "/en":
+					messageMap, err := storage.GetLangMessage(database.EN)
+					if err != nil {
+						fmt.Println(err)
+					}
+					userSessionsLang[chatId] = *messageMap
+				case "/ru":
+					messageMap, err := storage.GetLangMessage(database.RU)
+					if err != nil {
+						fmt.Println(err)
+					}
+					userSessionsLang[chatId] = *messageMap
 				default:
 					if messageText == "" && location.Lon != 0 && location.Lat != 0 {
-						if processLocation(config, chatId, location.Lat, location.Lon, wasteType.Id) {
-							delete(userSessions, update.Message.Chat.ChatId)
+						if wasteType, ok := userSessionsWaste[chatId]; ok {
+							if processLocation(config, chatId, location.Lat, location.Lon, wasteType.Id, userSessionsLang[chatId][2]) {
+								delete(userSessionsWaste, update.Message.Chat.ChatId)
+							}
 						}
 					} else {
-						processFreeText(config, chatId, messageText, userSessions)	
+						processFreeText(config, chatId, messageText, userSessionsWaste, userSessionsLang[chatId][5], userSessionsLang[chatId][4], userSessionsLang[chatId][6])
 					}
 				}
 				offset = update.UpdateId + 1
@@ -69,46 +89,14 @@ func (p *Processor) Stop() {
 	close(p.closeChan)
 }
 
-func ProcessUpdates(config *models.Config, offset int, userSessions map[int]models.WasteType) int {
-	updates, err := services.GetUpdates(config.TelegramToken, config.TelegramApiUrl, offset)
-	if err != nil {
-		return offset
-	}
-
-	sort.Slice(updates, func(i, j int) bool { return updates[i].UpdateId < updates[j].UpdateId })
-
-	for _, update := range updates {
-		messageText := strings.ToLower(update.Message.Text)
-		chatId := update.Message.Chat.ChatId
-		location := update.Message.Location
-
-		if messageText == "/start" {
-			processStart(config, chatId)
-		} else if messageText == "" && location.Lon != 0 && location.Lat != 0 {
-			if wasteType, ok := userSessions[chatId]; ok {
-				if processLocation(config, chatId, location.Lat, location.Lon, wasteType.Id) {
-					delete(userSessions, update.Message.Chat.ChatId)
-				}
-			}
-		} else if messageText == "/getwastetypes" {
-			processWasteTypesRequest(config, chatId)
-		} else {
-			processFreeText(config, chatId, messageText, userSessions)
-		}
-		offset = update.UpdateId + 1
-	}
-
-	return offset
-}
-
-func processStart(config *models.Config, chatId int) {
-	err := services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, "Бла-бла. Такие-то команды. Пользуйтесь на здоровье планеты.")
+func processStart(config *models.Config, chatId int, helloMsg string) {
+	err := services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, helloMsg)
 	if err != nil {
 		services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
 	}
 }
 
-func processLocation(config *models.Config, chatId int, lat float64, lon float64, wasteTypeId int) bool {
+func processLocation(config *models.Config, chatId int, lat float64, lon float64, wasteTypeId int, pointNotFound string) bool {
 	geoUrl, err := services.GetGeoUrl(config.GeobaseApiUrl, wasteTypeId, lat, lon)
 	if err != nil {
 		services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
@@ -122,7 +110,7 @@ func processLocation(config *models.Config, chatId int, lat float64, lon float64
 			return false
 		}
 	} else {
-		err = services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, "Ни одного пункта сдачи не найдено.")
+		err = services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, pointNotFound)
 		if err != nil {
 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
 		}
@@ -131,7 +119,7 @@ func processLocation(config *models.Config, chatId int, lat float64, lon float64
 	return true
 }
 
-func processWasteTypesRequest(config *models.Config, chatId int) {
+func processWasteTypesRequest(config *models.Config, chatId int, chooseWasteMsg string) {
 	wasteTypeList, err := services.GetWasteTypes(config.RecyclingApiUrl)
 	if err != nil {
 		services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
@@ -143,13 +131,13 @@ func processWasteTypesRequest(config *models.Config, chatId int) {
 		wasteTypeNameList[i] = wasteTypeList[i].Name
 	}
 
-	err = services.SendTextButtons(config.TelegramToken, config.TelegramApiUrl, chatId, "Выберите отход:", wasteTypeNameList)
+	err = services.SendTextButtons(config.TelegramToken, config.TelegramApiUrl, chatId, chooseWasteMsg, wasteTypeNameList)
 	if err != nil {
 		log.Println("Something go wrong: ", err.Error())
 	}
 }
 
-func processFreeText(config *models.Config, chatId int, text string, userSessions map[int]models.WasteType) {
+func processFreeText(config *models.Config, chatId int, text string, userSessions map[int]models.WasteType, wasteNotFound string, reqLocMsg string, locBtnMsg string) {
 	wasteType, err := services.GetWasteTypeByText(config.RecyclingApiUrl, text)
 	if err != nil {
 		services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
@@ -158,12 +146,12 @@ func processFreeText(config *models.Config, chatId int, text string, userSession
 
 	if wasteType != nil && *wasteType != (models.WasteType{}) {
 		userSessions[chatId] = *wasteType
-		err = services.SendLocatonRequest(config.TelegramToken, config.TelegramApiUrl, chatId, "Для получения пунктов сдачи необходимо определить геолокацию. Нажмите на кнопку:")
+		err = services.SendLocatonRequest(config.TelegramToken, config.TelegramApiUrl, chatId, reqLocMsg, locBtnMsg)
 		if err != nil {
 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
 		}
 	} else {
-		err = services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, "Введенный текст не распознался как вид отхода. Можете повторить запрос либо воспользоваться командой /getwastetypes для вывода кнопок с видами отходов.")
+		err = services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, wasteNotFound)
 		if err != nil {
 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
 		}

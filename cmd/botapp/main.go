@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"telebot/internal/database"
 	"telebot/internal/models"
 	"telebot/internal/processor"
 
@@ -13,13 +14,11 @@ import (
 func main() {
 	config := prepareConfig()
 
-	offset := 0
+	storage := database.NewTelebotLanguageStorage(config)
+	storage.Migrate()
 
-	userSessions := make(map[int]models.WasteType)
-
-	for {
-		offset = processor.ProcessUpdates(config, offset, userSessions)
-	}
+	processor := processor.NewProcessor()
+	processor.Start(config, storage)
 }
 
 func prepareConfig() *models.Config {
