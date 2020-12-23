@@ -10,8 +10,8 @@ import (
 )
 
 // GetGeoUrl Получение ссылки из geobase
-func GetGeoUrl(url string, wasteTypeId int, lat float64, lon float64) (*string, error) {
-	requestUrl := fmt.Sprintf("%swaste/type/%d/location?latitude=%f&longitude=%f", url, wasteTypeId, lat, lon)
+func GetGeoUrl(url string, wasteTypeId string, lat float64, lon float64) (*string, error) {
+	requestUrl := fmt.Sprintf("%swaste/type/%s/location?latitude=%f&longitude=%f", url, wasteTypeId, lat, lon)
 	resp, err := http.Get(requestUrl)
 	if err != nil {
 		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
