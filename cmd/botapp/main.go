@@ -29,10 +29,6 @@ func prepareConfig() *models.Config {
 		fmt.Printf("Unable to get app configuration due to: %s\n", err.Error())
 	}
 
-	// if err := cleanenv.ReadEnv(&cfg); err != nil {
-	// 	fmt.Printf("Unable to retrieve app configuration due to: %s\n", err.Error())
-	// 	os.Exit(1)
-	// }
 	return &cfg
 }
 
