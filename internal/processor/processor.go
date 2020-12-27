@@ -97,8 +97,35 @@ func processStart(config *models.Config, chatId int, helloMsg string) {
 	}
 }
 
+// func processLocation(config *models.Config, chatId int, lat float64, lon float64, wasteTypeId string, pointNotFound string) bool {
+// 	geoUrl, err := services.GetGeoUrl(config.GeobaseApiUrl, wasteTypeId, lat, lon)
+// 	if err != nil {
+// 		if err == http_error.ErrNotFound {
+// 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, pointNotFound)
+// 		} else {
+// 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+// 		}
+// 		return false
+// 	}
+
+// 	if geoUrl != nil {
+// 		err = services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, *geoUrl)
+// 		if err != nil {
+// 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+// 			return false
+// 		}
+// 	} else {
+// 		err = services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, pointNotFound)
+// 		if err != nil {
+// 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+// 		}
+// 	}
+
+// 	return true
+// }
+
 func processLocation(config *models.Config, chatId int, lat float64, lon float64, wasteTypeId string, pointNotFound string) bool {
-	geoUrl, err := services.GetGeoUrl(config.GeobaseApiUrl, wasteTypeId, lat, lon)
+	point, err := services.GetGeoPoint(config.GeobaseApiUrl, wasteTypeId, lat, lon)
 	if err != nil {
 		if err == http_error.ErrNotFound {
 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, pointNotFound)
@@ -108,8 +135,8 @@ func processLocation(config *models.Config, chatId int, lat float64, lon float64
 		return false
 	}
 
-	if geoUrl != nil {
-		err = services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, *geoUrl)
+	if point != nil {
+		err = services.SendLocation(config.TelegramToken, config.TelegramApiUrl, chatId, *point)
 		if err != nil {
 			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
 			return false
@@ -145,7 +172,11 @@ func processWasteTypesRequest(config *models.Config, chatId int, chooseWasteMsg 
 func processFreeText(config *models.Config, chatId int, text string, userSessions map[int]models.WasteType, wasteNotFound string, reqLocMsg string, locBtnMsg string) {
 	wasteType, err := services.GetWasteTypeByText(config.RecyclingApiUrl, text)
 	if err != nil {
-		services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+		if err == http_error.ErrNotFound {
+			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, wasteNotFound)
+		} else {
+			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+		}
 		return
 	}
 

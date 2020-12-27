@@ -129,3 +129,28 @@ func SendLocatonRequest(token string, url string, chatId int, text string, btnMe
 
 	return nil
 }
+
+func SendLocation(token string, url string, chatId int, location models.Location) error {
+	requestUrl := url + token + "/sendLocation"
+
+	message := models.BotMessageLocation{
+		ChatId: chatId,
+		Lon:    location.Lon,
+		Lat:    location.Lat,
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return http_error.CommonError(fmt.Sprintf("%v: %s %v", err, requestUrl, message))
+	}
+
+	resp, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(messageJson))
+	if err != nil {
+		return http_error.CommonError(fmt.Sprintf("%v: %s %v", err, requestUrl, message))
+	}
+	if http_error.IsFailStatus(resp.StatusCode) {
+		return http_error.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+fmt.Sprintf("%v", message)+" "+string(messageJson))
+	}
+
+	return nil
+}

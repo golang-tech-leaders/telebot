@@ -36,3 +36,29 @@ func GetGeoUrl(url string, wasteTypeId string, lat float64, lon float64) (*strin
 
 	return &mapReference.Url, nil
 }
+
+func GetGeoPoint(url string, wasteTypeId string, lat float64, lon float64) (*models.Location, error) {
+	requestUrl := fmt.Sprintf("%s/waste/type/%s/point?latitude=%f&longitude=%f&radius=6", url, strings.Title(wasteTypeId), lat, lon)
+	resp, err := http.Get(requestUrl)
+	if err != nil {
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
+	}
+	defer resp.Body.Close()
+
+	bodyJson, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
+	}
+
+	if http_error.IsFailStatus(resp.StatusCode) {
+		return nil, http_error.HttpError(resp.StatusCode, resp.Status+" "+requestUrl+" "+string(bodyJson))
+	}
+
+	var location models.Location
+	err = json.Unmarshal(bodyJson, &location)
+	if err != nil {
+		return nil, http_error.CommonError(err.Error() + " " + requestUrl + " " + string(bodyJson))
+	}
+
+	return &location, nil
+}

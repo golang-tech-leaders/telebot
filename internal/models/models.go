@@ -30,6 +30,12 @@ type BotMessage struct {
 	ReplyMarkup interface{} `json:"reply_markup"`
 }
 
+type BotMessageLocation struct {
+	ChatId int     `json:"chat_id"`
+	Lon    float64 `json:"longitude"`
+	Lat    float64 `json:"latitude"`
+}
+
 type ReplyKeyboardMarkup struct {
 	Keyboard [][]KeyboardButton `json:"keyboard"`
 }

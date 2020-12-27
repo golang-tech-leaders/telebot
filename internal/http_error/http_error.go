@@ -12,7 +12,7 @@ var (
 )
 
 func IsFailStatus(status int) bool {
-	return status < http.StatusOK && status > http.StatusIMUsed
+	return status < http.StatusOK || status > http.StatusIMUsed
 }
 
 func HttpError(status int, info string) error {
