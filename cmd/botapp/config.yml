@@ -1,6 +1,6 @@
 "telegram_token": "1002130423:AAG1fk3_C4PSn3172SATn29jgtp5T7R5o60"
 "telegram_api_url": "https://api.telegram.org/bot"
-"recycling_api_url": "https://tech-leaders-golang-recycling.herokuapp.com/"
+"recycling_api_url": "https://tech-leaders-recycling-dev.herokuapp.com/"
 "geobase_api_url": " https://tech-leaders-geobase-dev.herokuapp.com/"
 "db_host" : "localhost"
 "db_port" : 15432
