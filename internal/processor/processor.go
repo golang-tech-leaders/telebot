@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"telebot/internal/database"
+	"telebot/internal/http_error"
 	"telebot/internal/models"
 	"telebot/internal/services"
 )
@@ -99,7 +100,11 @@ func processStart(config *models.Config, chatId int, helloMsg string) {
 func processLocation(config *models.Config, chatId int, lat float64, lon float64, wasteTypeId string, pointNotFound string) bool {
 	geoUrl, err := services.GetGeoUrl(config.GeobaseApiUrl, wasteTypeId, lat, lon)
 	if err != nil {
-		services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+		if err == http_error.ErrNotFound {
+			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, pointNotFound)
+		} else {
+			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+		}
 		return false
 	}
 
