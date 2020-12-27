@@ -71,7 +71,7 @@ func (p *Processor) Start(config *models.Config, storage *database.TelebotLangua
 				default:
 					if messageText == "" && location.Lon != 0 && location.Lat != 0 {
 						if wasteType, ok := userSessionsWaste[chatId]; ok {
-							if processLocation(config, chatId, location.Lat, location.Lon, wasteType.Id, userSessionsLang[chatId][2]) {
+							if processLocation(config, chatId, location.Lat, location.Lon, wasteType.Name, userSessionsLang[chatId][2]) {
 								delete(userSessionsWaste, update.Message.Chat.ChatId)
 							}
 						}
