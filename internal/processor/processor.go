@@ -145,7 +145,11 @@ func processWasteTypesRequest(config *models.Config, chatId int, chooseWasteMsg 
 func processFreeText(config *models.Config, chatId int, text string, userSessions map[int]models.WasteType, wasteNotFound string, reqLocMsg string, locBtnMsg string) {
 	wasteType, err := services.GetWasteTypeByText(config.RecyclingApiUrl, text)
 	if err != nil {
-		services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+		if err == http_error.ErrNotFound {
+			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, wasteNotFound)
+		} else {
+			services.SendTextMessage(config.TelegramToken, config.TelegramApiUrl, chatId, err.Error())
+		}
 		return
 	}
 
