@@ -11,7 +11,7 @@ import (
 
 // GetGeoUrl Получение ссылки из geobase
 func GetGeoUrl(url string, wasteTypeId string, lat float64, lon float64) (*string, error) {
-	requestUrl := fmt.Sprintf("%swaste/type/%s/location?latitude=%f&longitude=%f", url, wasteTypeId, lat, lon)
+	requestUrl := fmt.Sprintf("%swaste/type/%s/location?latitude=%f&longitude=%f&radius=6", url, wasteTypeId, lat, lon)
 	resp, err := http.Get(requestUrl)
 	if err != nil {
 		return nil, http_error.CommonError(err.Error() + " " + requestUrl)
